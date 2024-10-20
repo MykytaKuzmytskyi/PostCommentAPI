@@ -25,6 +25,7 @@ if config.config_file_name is not None:
 from src.user.models import *
 from src.post.models import *
 from src.post.comment.models import *
+
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
 
