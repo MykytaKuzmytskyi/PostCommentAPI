@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 
 class Settings(BaseSettings):
@@ -7,6 +8,10 @@ class Settings(BaseSettings):
     app_name: str = "PostCommentAPI"
     SQLALCHEMY_DATABASE_URL: str
     USER_SECRET_KEY: str
+
+    @property
+    def GET_TEST_DATABASE_URL(self):
+        return f"sqlite+aiosqlite:///{os.path.join(os.path.dirname(__file__), 'tests', 'test_database.db')}"
 
 
 settings = Settings()
