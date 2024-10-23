@@ -10,19 +10,32 @@ from src.user.models import User
 router = APIRouter()
 
 
-@router.get("/posts", response_model=list[schemas.PostReadDetail])
+@router.get(
+    "/posts",
+    response_model=list[schemas.PostReadDetail],
+    tags=["Post"],
+)
 async def read_posts(db: AsyncSession = Depends(get_db)):
     posts = await crud.get_posts(db)
     return [schemas.PostReadDetail.from_orm(post) for post in posts]
 
 
-@router.get("/post/{post_id}", response_model=schemas.PostReadDetail)
+@router.get(
+    "/post/{post_id}",
+    response_model=schemas.PostReadDetail,
+    tags=["Post"],
+)
 async def post_read_by_id(post_id: int, db: AsyncSession = Depends(get_db)):
     post = await crud.get_post_by_id(db, post_id)
     return schemas.PostReadDetail.from_orm(post)
 
 
-@router.post("/posts", response_model=schemas.PostCreateResponse)
+@router.post(
+    "/posts",
+    response_model=schemas.PostCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Post"],
+)
 async def post_create(
     post_data: schemas.PostCreate,
     db: AsyncSession = Depends(get_db),
@@ -34,6 +47,7 @@ async def post_create(
 
 @router.patch(
     "/post/{post_id}",
+    tags=["Post"],
 )
 async def post_update(
     post_id: int,
@@ -47,6 +61,7 @@ async def post_update(
 @router.delete(
     "/post/{post_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Post"],
 )
 async def delete_route(
     db: AsyncSession = Depends(get_db),
