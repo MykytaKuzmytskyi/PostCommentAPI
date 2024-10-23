@@ -34,9 +34,11 @@ async def post_create(db: AsyncSession, post_data: schemas.PostCreate, user):
         user_id=user.id,
     )
 
-    result = await db.execute(query)
-    response = {**post_data.model_dump(), "id": result.lastrowid}
-    return response
+    result = await db.execute(query.returning(models.Post.id))
+    new_post_id = result.scalar()
+    await db.commit()
+
+    return {**post_data.model_dump(), "id": new_post_id}
 
 
 async def post_update(db: AsyncSession, post_data: schemas.PostUpdate, post_id: int):
