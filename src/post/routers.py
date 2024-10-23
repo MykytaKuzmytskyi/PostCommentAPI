@@ -47,6 +47,7 @@ async def post_create(
 
 @router.patch(
     "/post/{post_id}",
+    response_model=schemas.PostCreateResponse,
     tags=["Post"],
 )
 async def post_update(
@@ -55,7 +56,8 @@ async def post_update(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(auth.current_user),
 ):
-    return await crud.post_update(db=db, post_id=post_id, post_data=post_data)
+    post = await crud.post_update(db=db, post_id=post_id, post_data=post_data)
+    return schemas.PostCreateResponse.from_orm(post)
 
 
 @router.delete(
