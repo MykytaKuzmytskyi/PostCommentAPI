@@ -18,7 +18,6 @@ class PostReadDetail(PostBase):
 
 
 class PostCreate(PostBase):
-
     class Config:
         from_attributes = True
 
