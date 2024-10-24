@@ -96,3 +96,11 @@ async def auth_client(ac):
 
     ac.headers["Cookie"] = cookie_header
     yield ac
+
+
+@pytest_asyncio.fixture(scope="class", autouse=True)
+async def created_post(auth_client):
+    data = {"title": "Test Post", "content": "Test content"}
+    response = await auth_client.post("/posts", json=data)
+    assert response.status_code == 201
+    return response.json()
