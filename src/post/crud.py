@@ -1,9 +1,14 @@
+import asyncio
+
 from fastapi import HTTPException
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, delete, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.post import models, schemas
+from src.post.comment.models import Comment
+from src.post.comment.schemas import CommentCreate, CommentTree
+from src.post.comment.utils import comment_children_create, get_max_rgt
 
 
 async def get_posts(db: AsyncSession):
@@ -58,3 +63,120 @@ async def post_delete(db: AsyncSession, post_id: int):
     return HTTPException(
         status_code=204, detail=f"Post with id №{post_id} has been deleted."
     )
+
+
+async def get_comments_by_post(post_id: int, db: AsyncSession):
+    await get_post_by_id(db, post_id)
+    query = select(Comment).where(Comment.post_id == post_id)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+async def get_comment_by_comment_id(db: AsyncSession, comment_id: int):
+    comment = await db.get(Comment, comment_id)
+    if not comment:
+        raise HTTPException(
+            status_code=404, detail=f"Comment with id {comment_id} not found."
+        )
+    return comment
+
+
+async def get_children_comments(db: AsyncSession, parent_id: int) -> list[Comment]:
+    children_query = select(Comment).where(
+        Comment.parent_id == parent_id
+    )  # Обмеження до двох
+    children_result = await db.execute(children_query)
+    return children_result.scalars().all()
+
+
+async def build_comment_tree(db: AsyncSession, comment: Comment) -> CommentTree:
+    comment_tree = CommentTree(
+        id=comment.id,
+        content=comment.content,
+        created_at=comment.created_at,
+        user_id=comment.user_id,
+        lft=comment.lft,
+        rgt=comment.rgt,
+    )
+    children = await get_children_comments(db, comment.id)
+    comment_tree.children = [await build_comment_tree(db, child) for child in children]
+    return comment_tree
+
+
+async def get_comments_tree(db: AsyncSession, post_id: int) -> list[CommentTree]:
+    root_comments_query = select(Comment).where(
+        Comment.post_id == post_id, Comment.parent_id.is_(None)
+    )
+    result = await db.execute(root_comments_query)
+    root_comments = result.scalars().all()
+
+    return await asyncio.gather(
+        *(build_comment_tree(db, comment) for comment in root_comments)
+    )
+
+
+async def create_comment(
+    db: AsyncSession, post_id: int, comment_data: CommentCreate, user
+):
+    result = await db.execute(select(func.count(Comment.id)))
+    comments_count = result.scalar()
+    if comments_count == 0:
+        new_comment = Comment(
+            content=comment_data.content,
+            post_id=post_id,
+            user_id=user.id,
+            lft=1,
+            rgt=2,
+            level=0,
+        )
+
+    else:
+        if comment_data.parent_id is not None:
+            new_comment = await comment_children_create(db, post_id, comment_data, user)
+
+        else:
+            max_rgt = await get_max_rgt(db, post_id)
+            await db.execute(
+                update(Comment)
+                .where(Comment.lft > max_rgt)
+                .values(lft=Comment.lft + 2, rgt=Comment.rgt + 2)
+            )
+
+            new_comment = Comment(
+                content=comment_data.content,
+                post_id=post_id,
+                user_id=user.id,
+                lft=max_rgt + 1,
+                rgt=max_rgt + 2,
+                level=0,
+            )
+
+    db.add(new_comment)
+    await db.commit()
+    await db.refresh(new_comment)
+
+    return new_comment
+
+
+async def delete_comment(db: AsyncSession, comment_id: int):
+    comment = await get_comment_by_comment_id(db, comment_id)
+
+    min_lft = comment.lft
+    max_rgt = comment.rgt
+    width = max_rgt - min_lft + 1
+
+    await db.execute(
+        delete(Comment).where(Comment.lft >= min_lft, Comment.rgt <= max_rgt)
+    )
+
+    await db.execute(
+        update(Comment).where(Comment.lft > max_rgt).values(lft=Comment.lft - width)
+    )
+
+    await db.execute(
+        update(Comment).where(Comment.rgt > max_rgt).values(rgt=Comment.rgt - width)
+    )
+
+    await db.commit()
+
+    return
