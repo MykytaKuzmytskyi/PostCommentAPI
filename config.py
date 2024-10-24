@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     app_name: str = "PostCommentAPI"
     SQLALCHEMY_DATABASE_URL: str
     USER_SECRET_KEY: str
+    PERSPECTIVE_API_KEY: str
 
     @property
     def GET_TEST_DATABASE_URL(self):
