@@ -7,6 +7,36 @@ from .models import Comment
 from sqlalchemy import select
 
 
+async def create_new_comment(
+    db, comment_data, post_id, user, is_blocked, lft, rgt, level
+):
+    """Function for create new comment"""
+    return Comment(
+        content=comment_data.content,
+        post_id=post_id,
+        user_id=user.id,
+        parent_id=comment_data.parent_id,
+        lft=lft,
+        rgt=rgt,
+        level=level,
+        is_blocked=is_blocked,
+    )
+
+
+async def get_parent_comment(db: AsyncSession, parent_id: int, post_id: int):
+    """Get a parent's comment."""
+    parent_result = await db.execute(
+        select(Comment).filter(Comment.id == parent_id, Comment.post_id == post_id)
+    )
+    parent_comment = parent_result.scalar_one_or_none()
+    if parent_comment is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Comment with id №{parent_id} not found.",
+        )
+    return parent_comment
+
+
 async def get_max_rgt(db: AsyncSession, post_id: int):
     max_rgt_for_post = await db.execute(
         select(func.max(Comment.rgt))
@@ -26,40 +56,48 @@ async def get_max_rgt(db: AsyncSession, post_id: int):
     return max_rgt
 
 
-async def comment_children_create(db: AsyncSession, post_id, comment_data, user):
-    parent_result = await db.execute(
-        select(Comment).filter(
-            Comment.id == comment_data.parent_id, Comment.post_id == post_id
-        )
-    )
-    parent_comment = parent_result.scalar_one_or_none()
-    if parent_comment is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Comment with id №{comment_data.parent_id} not found.",
-        )
+async def get_max_rgt_for_children(db: AsyncSession, parent_id: int):
+    """We get the maximum rgt for child comments."""
     max_rgt_result = await db.execute(
-        select(func.max(Comment.rgt)).filter(Comment.parent_id == parent_comment.id)
+        select(func.max(Comment.rgt)).filter(Comment.parent_id == parent_id)
     )
-    max_rgt = max_rgt_result.scalar_one_or_none()
-    if max_rgt is not None:
-        rgt_to_use = max_rgt
-    else:
-        rgt_to_use = parent_comment.rgt
+    return max_rgt_result.scalar_one_or_none()
 
-    new_comment = Comment(
-        content=comment_data.content,
-        parent_id=comment_data.parent_id,
-        post_id=post_id,
-        user_id=user.id,
+
+async def shift_comment_tree(db: AsyncSession, max_rgt: int):
+    """We move all comments with rgt > max_rgt to insert a new comment."""
+    await db.execute(
+        update(Comment)
+        .where(Comment.lft > max_rgt)
+        .values(lft=Comment.lft + 2, rgt=Comment.rgt + 2)
+    )
+
+
+async def comment_children_create(
+    db: AsyncSession, post_id, comment_data, user, is_blocked
+):
+    """Creating a child comment."""
+    parent_comment = await get_parent_comment(db, comment_data.parent_id, post_id)
+
+    max_rgt = await get_max_rgt_for_children(db, parent_comment.id)
+    rgt_to_use = max_rgt if max_rgt is not None else parent_comment.rgt
+
+    new_comment = await create_new_comment(
+        db,
+        comment_data,
+        post_id,
+        user,
+        is_blocked,
         lft=rgt_to_use,
         rgt=rgt_to_use + 1,
         level=parent_comment.level + 1,
     )
+
     await db.execute(
         update(Comment).where(Comment.lft > rgt_to_use).values(lft=Comment.lft + 2)
     )
     await db.execute(
         update(Comment).where(Comment.rgt >= rgt_to_use).values(rgt=Comment.rgt + 2)
     )
+
     return new_comment

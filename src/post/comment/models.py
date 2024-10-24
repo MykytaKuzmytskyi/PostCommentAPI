@@ -19,8 +19,8 @@ class Comment(Base):
     parent_id = Column(
         Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True
     )
-    lft = Column(Integer, nullable=False)  # Уникальное ограничение для lft
-    rgt = Column(Integer, nullable=False)  # Уникальное ограничение для rgt
+    lft = Column(Integer, nullable=False)
+    rgt = Column(Integer, nullable=False)
     level = Column(Integer, nullable=False, default=0)
 
     parent = relationship(

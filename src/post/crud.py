@@ -8,7 +8,13 @@ from sqlalchemy.orm import selectinload
 from src.post import models, schemas
 from src.post.comment.models import Comment
 from src.post.comment.schemas import CommentCreate, CommentTree
-from src.post.comment.utils import comment_children_create, get_max_rgt
+from src.post.comment.utils import (
+    comment_children_create,
+    get_max_rgt,
+    create_new_comment,
+    shift_comment_tree,
+)
+from src.services.text_toxicity_analysis import analyze_text_toxicity
 
 
 async def get_posts(db: AsyncSession):
@@ -118,34 +124,29 @@ async def get_comments_tree(db: AsyncSession, post_id: int) -> list[CommentTree]
 async def create_comment(
     db: AsyncSession, post_id: int, comment_data: CommentCreate, user
 ):
+    toxicity_score = await analyze_text_toxicity(comment_data.content)
+    is_blocked = toxicity_score > 0.5
+
     result = await db.execute(select(func.count(Comment.id)))
     comments_count = result.scalar()
     if comments_count == 0:
-        new_comment = Comment(
-            content=comment_data.content,
-            post_id=post_id,
-            user_id=user.id,
-            lft=1,
-            rgt=2,
-            level=0,
+        new_comment = await create_new_comment(
+            db, comment_data, post_id, user, is_blocked, lft=1, rgt=2, level=0
         )
-
     else:
         if comment_data.parent_id is not None:
-            new_comment = await comment_children_create(db, post_id, comment_data, user)
-
+            new_comment = await comment_children_create(
+                db, post_id, comment_data, user, is_blocked
+            )
         else:
             max_rgt = await get_max_rgt(db, post_id)
-            await db.execute(
-                update(Comment)
-                .where(Comment.lft > max_rgt)
-                .values(lft=Comment.lft + 2, rgt=Comment.rgt + 2)
-            )
-
-            new_comment = Comment(
-                content=comment_data.content,
-                post_id=post_id,
-                user_id=user.id,
+            await shift_comment_tree(db, max_rgt)
+            new_comment = await create_new_comment(
+                db,
+                comment_data,
+                post_id,
+                user,
+                is_blocked,
                 lft=max_rgt + 1,
                 rgt=max_rgt + 2,
                 level=0,

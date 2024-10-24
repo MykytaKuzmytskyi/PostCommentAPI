@@ -16,14 +16,14 @@ client = discovery.build(
 )
 
 
-async def analyze_text_toxicity(comment_text: str):
+async def analyze_text_toxicity(comment_text: str) -> bool:
     analyze_request = {
-        'comment': {'text': comment_text},
-        'requestedAttributes': {'TOXICITY': {}}
+        "comment": {"text": comment_text},
+        "requestedAttributes": {"TOXICITY": {}},
     }
 
     response = client.comments().analyze(body=analyze_request).execute()
-    toxicity_score = response['attributeScores']['TOXICITY']['summaryScore']['value']
+    toxicity_score = response["attributeScores"]["TOXICITY"]["summaryScore"]["value"]
 
     if toxicity_score < 0.2:
         logger.info(f"Text toxicity level: Low ({toxicity_score:.2f})")
