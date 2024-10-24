@@ -14,4 +14,6 @@ class Post(Base):
     user_id = Column(Integer, ForeignKey("user.id"))
 
     user = relationship("User", back_populates="posts")
-    comments = relationship("Comment", back_populates="post")
+    comments = relationship(
+        "Comment", cascade="all, delete-orphan", back_populates="post"
+    )
