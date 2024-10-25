@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     USER_SECRET_KEY: str
     PERSPECTIVE_API_KEY: str
 
+    CELERY_BROKER_URL: str = "redis://redis:6379/0"
+    CELERY_BACKEND_URL: str = "redis://redis:6379/1"
+
+
     @property
     def GET_TEST_DATABASE_URL(self):
         return f"sqlite+aiosqlite:///{os.path.join(os.path.dirname(__file__), 'tests', 'test_database.db')}"
