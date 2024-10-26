@@ -1,23 +1,94 @@
-import pytest
-
 comment_fields = [
-    "id", "created_at", "user_id", "content",
-    "children", "lft", "rgt", "post_id"
+    "id",
+    "created_at",
+    "user_id",
+    "content",
+    "children",
+    "lft",
+    "rgt",
+    "post_id",
+    "is_blocked",
 ]
 
 
-@pytest.mark.asyncio
 class TestCommentAPI:
-    async def test_create_comment(self, auth_client):
-        data = {"content": "Test comment"}
+    async def test_create_good_comment(self, auth_client, created_post):
+        data = {"content": "This is a great post! Keep it up!"}
         post_id = 1
         response = await auth_client.post(f"/posts/{post_id}/comment", json=data)
         response_data = response.json()
 
-        assert response.status_code == 201, "Failed to create comment"
+        assert response.status_code == 201, "Failed to create good comment"
         assert "id" in response_data, "ID not found in response"
         assert response_data["content"] == data["content"], "Content mismatch"
         assert response_data["user_id"] == 1, "User ID mismatch"
+
+        assert response_data.get("is_blocked") is False, "Good comment should not be blocked"
+
+    async def test_create_bad_comment(self, auth_client):
+        data = {"content": "You are such an idiot!"}
+        post_id = 1
+        response = await auth_client.post(f"/posts/{post_id}/comment", json=data)
+        response_data = response.json()
+
+        assert response.status_code == 201, "Failed to create bad comment"
+        assert "id" in response_data, "ID not found in response"
+        assert response_data["content"] == data["content"], "Content mismatch"
+        assert response_data["user_id"] == 1, "User ID mismatch"
+
+        assert response_data.get("is_blocked") is True, "Bad comment should be blocked"
+
+    async def test_create_offensive_comment(self, auth_client):
+        data = {"content": "This is absolutely terrible and I hate it!"}
+        post_id = 1
+        response = await auth_client.post(f"/posts/{post_id}/comment", json=data)
+        response_data = response.json()
+
+        assert response.status_code == 201, "Failed to create offensive comment"
+        assert "id" in response_data, "ID not found in response"
+        assert response_data["content"] == data["content"], "Content mismatch"
+        assert response_data["user_id"] == 1, "User ID mismatch"
+
+        assert response_data.get("is_blocked") is False, "Offensive comment should not be blocked"
+
+    async def test_create_another_good_comment(self, auth_client):
+        data = {"content": "I found this really informative!"}
+        post_id = 1
+        response = await auth_client.post(f"/posts/{post_id}/comment", json=data)
+        response_data = response.json()
+
+        assert response.status_code == 201, "Failed to create another good comment"
+        assert "id" in response_data, "ID not found in response"
+        assert response_data["content"] == data["content"], "Content mismatch"
+        assert response_data["user_id"] == 1, "User ID mismatch"
+
+        assert response_data.get("is_blocked") is False, "Another good comment should not be blocked"
+
+    async def test_create_another_bad_comment(self, auth_client):
+        data = {"content": "You are so stupid!"}
+        post_id = 1
+        response = await auth_client.post(f"/posts/{post_id}/comment", json=data)
+        response_data = response.json()
+
+        assert response.status_code == 201, "Failed to create another bad comment"
+        assert "id" in response_data, "ID not found in response"
+        assert response_data["content"] == data["content"], "Content mismatch"
+        assert response_data["user_id"] == 1, "User ID mismatch"
+
+        assert response_data.get("is_blocked") is True, "Another bad comment should be blocked"
+
+    async def test_create_another_offensive_comment(self, auth_client):
+        data = {"content": "This is the worst thing I've ever read!"}
+        post_id = 1
+        response = await auth_client.post(f"/posts/{post_id}/comment", json=data)
+        response_data = response.json()
+
+        assert response.status_code == 201, "Failed to create another offensive comment"
+        assert "id" in response_data, "ID not found in response"
+        assert response_data["content"] == data["content"], "Content mismatch"
+        assert response_data["user_id"] == 1, "User ID mismatch"
+
+        assert response_data.get("is_blocked") is False, "Another offensive comment should be not blocked"
 
     async def test_create_children_comment(self, auth_client):
         data = {"content": "Children comment", "parent_id": 1}
