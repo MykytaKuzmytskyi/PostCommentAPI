@@ -24,7 +24,7 @@ class Comment(Base):
     level = Column(Integer, nullable=False, default=0)
 
     parent = relationship(
-        "Comment", remote_side=[id], backref="children", cascade="all, delete"
+        "Comment", remote_side=[id], backref="children", cascade="all"
     )
     user = relationship("User", back_populates="comments")
     post = relationship("Post", back_populates="comments")

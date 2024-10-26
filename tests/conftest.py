@@ -75,7 +75,7 @@ async def auth_client(ac):
     registration_data = {
         "email": "string@string.com",
         "password": "string",
-        "auto_reply_enabled": True,
+        # "auto_reply_enabled": True,
         "auto_reply_delay": "00:00:10",
     }
 
@@ -98,9 +98,9 @@ async def auth_client(ac):
     yield ac
 
 
-@pytest_asyncio.fixture(scope="class", autouse=True)
+@pytest_asyncio.fixture(scope="module")
 async def created_post(auth_client):
-    data = {"title": "Test Post", "content": "Test content"}
+    data = {"title": "First Test Post", "content": "Test content"}
     response = await auth_client.post("/posts", json=data)
     assert response.status_code == 201
     return response.json()
