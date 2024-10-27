@@ -1,26 +1,9 @@
 from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy import update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import Comment
-
-from sqlalchemy import select
-
-
-async def create_new_comment(
-    db, comment_data, post_id, user, is_blocked, lft, rgt, level
-):
-    """Function for create new comment"""
-    return Comment(
-        content=comment_data.content,
-        post_id=post_id,
-        user_id=user.id,
-        parent_id=comment_data.parent_id,
-        lft=lft,
-        rgt=rgt,
-        level=level,
-        is_blocked=is_blocked,
-    )
 
 
 async def get_parent_comment(db: AsyncSession, parent_id: int, post_id: int):
@@ -74,20 +57,20 @@ async def shift_comment_tree(db: AsyncSession, max_rgt: int):
 
 
 async def comment_children_create(
-    db: AsyncSession, post_id, comment_data, user, is_blocked
+        db: AsyncSession, post_id, parent_id, content, user_id, is_blocked
 ):
     """Creating a child comment."""
-    parent_comment = await get_parent_comment(db, comment_data.parent_id, post_id)
+    parent_comment = await get_parent_comment(db, parent_id, post_id)
 
     max_rgt = await get_max_rgt_for_children(db, parent_comment.id)
     rgt_to_use = max_rgt if max_rgt is not None else parent_comment.rgt
 
-    new_comment = await create_new_comment(
-        db,
-        comment_data,
-        post_id,
-        user,
-        is_blocked,
+    new_comment = Comment(
+        post_id=post_id,
+        parent_id=parent_id,
+        content=content,
+        user_id=user_id,
+        is_blocked=is_blocked,
         lft=rgt_to_use,
         rgt=rgt_to_use + 1,
         level=parent_comment.level + 1,

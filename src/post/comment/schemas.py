@@ -12,6 +12,7 @@ class CommentsRead(CommentBase):
     post_id: int
     created_at: datetime
     user_id: int
+    is_blocked: bool
 
     class Config:
         from_attributes = True
@@ -32,6 +33,14 @@ class CommentTree(BaseModel):
 
 class CommentCreate(CommentBase):
     parent_id: int | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class ReplyComment(BaseModel):
+    post_id: int
+    parent_id: int
 
     class Config:
         from_attributes = True

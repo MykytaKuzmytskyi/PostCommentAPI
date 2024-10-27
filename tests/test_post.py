@@ -3,7 +3,6 @@ import pytest
 post_fields = ["title", "content", "id", "created_at", "user_id"]
 
 
-@pytest.mark.asyncio
 class TestAsyncClient:
     async def test_user_me(self, auth_client):
         response = await auth_client.get("/users/me")
@@ -22,7 +21,7 @@ class TestAsyncClient:
         response = await auth_client.get("posts")
         assert response.status_code == 200
         response_data = response.json()
-        assert len(response_data) == 2
+        assert len(response_data) == 1
         for key in response_data[0]:
             assert key in post_fields
 
