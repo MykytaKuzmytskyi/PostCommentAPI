@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     USER_SECRET_KEY: str
     PERSPECTIVE_API_KEY: str
 
-    CELERY_BROKER_URL: str = "redis://redis:6380/0"
-    CELERY_BACKEND_URL: str = "redis://redis:6380/1"
+    CELERY_BROKER_URL: str = "redis://redis:6379/0"
+    CELERY_BACKEND_URL: str = "redis://redis:6379/1"
 
 
     @property
