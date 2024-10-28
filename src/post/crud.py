@@ -41,10 +41,15 @@ async def get_post_by_id(db: AsyncSession, post_id: int):
 
 
 async def post_create(db: AsyncSession, post_data: schemas.PostCreate, user):
+    title_toxicity_score = await analyze_text_toxicity(post_data.title)
+    content_toxicity_score = await analyze_text_toxicity(post_data.content)
+    is_blocked = any([title_toxicity_score > 0.5, content_toxicity_score > 0.5])
+
     query = insert(models.Post).values(
         title=post_data.title,
         content=post_data.content,
         user_id=user.id,
+        is_blocked=is_blocked,
     )
 
     result = await db.execute(query.returning(models.Post.id))
@@ -139,9 +144,10 @@ async def create_comment(
             parent_id=comment_data.parent_id,
             content=comment_data.content,
             user_id=user.id,
+            is_blocked=is_blocked,
             lft=1,
             rgt=2,
-            level=0
+            level=0,
         )
     else:
         if comment_data.parent_id is not None:

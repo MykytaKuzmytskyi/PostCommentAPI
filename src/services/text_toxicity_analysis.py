@@ -16,9 +16,9 @@ client = discovery.build(
 )
 
 
-async def analyze_text_toxicity(comment_text: str) -> bool:
+async def analyze_text_toxicity(text: str) -> bool:
     analyze_request = {
-        "comment": {"text": comment_text},
+        "comment": {"text": text},
         "requestedAttributes": {"TOXICITY": {}},
     }
 
