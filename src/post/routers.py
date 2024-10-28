@@ -4,7 +4,13 @@ from starlette import status
 
 from database.dependencies import get_db
 from src.post import crud, schemas
-from src.post.comment.schemas import CommentCreate, CommentsRead, CommentTree
+from src.post.comment.schemas import (
+    CommentCreate,
+    CommentsRead,
+    CommentTree,
+    DailyCommentBreakdown,
+)
+from src.post.crud import get_comments_daily_breakdown
 from src.user import auth
 from src.user.models import User
 
@@ -132,3 +138,21 @@ async def delete_comment(
     user: User = Depends(auth.current_user),
 ):
     return await crud.delete_comment(db=db, comment_id=comment_id)
+
+
+@router.get("/comments-daily-breakdown", response_model=list[DailyCommentBreakdown])
+async def get_comments_breakdown(
+    date_from: str, date_to: str, db: AsyncSession = Depends(get_db)
+):
+    """
+    Retrieve a daily breakdown of comments within a specified date range.
+
+    Args:
+        date_from (str): The start date for the comments in the format 'YYYY-MM-DD'.
+        date_to (str): The end date for the comments in the format 'YYYY-MM-DD'.
+        db (AsyncSession, optional): The database session dependency.
+
+    Returns:
+        List[DailyCommentBreakdown]: A list of daily comment breakdowns.
+    """
+    return await get_comments_daily_breakdown(db, date_from, date_to)

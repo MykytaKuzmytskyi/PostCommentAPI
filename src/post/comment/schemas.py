@@ -44,3 +44,12 @@ class ReplyComment(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DailyCommentBreakdown(BaseModel):
+    date: str
+    total_comments: int
+    blocked_comments: int
+
+    class Config:
+        from_attributes = True
