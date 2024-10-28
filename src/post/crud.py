@@ -57,7 +57,7 @@ async def post_create(db: AsyncSession, post_data: schemas.PostCreate, user):
     new_post_id = result.scalar()
     await db.commit()
 
-    return {**post_data.model_dump(), "id": new_post_id}
+    return {**post_data.model_dump(), "id": new_post_id, "is_blocked": is_blocked}
 
 
 async def post_update(db: AsyncSession, post_data: schemas.PostUpdate, post_id: int, user):
