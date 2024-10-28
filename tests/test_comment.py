@@ -23,7 +23,9 @@ class TestCommentAPI:
         assert response_data["content"] == data["content"], "Content mismatch"
         assert response_data["user_id"] == 1, "User ID mismatch"
 
-        assert response_data.get("is_blocked") is False, "Good comment should not be blocked"
+        assert (
+            response_data.get("is_blocked") is False
+        ), "Good comment should not be blocked"
 
     async def test_create_bad_comment(self, auth_client):
         data = {"content": "You are such an idiot!"}
@@ -49,7 +51,9 @@ class TestCommentAPI:
         assert response_data["content"] == data["content"], "Content mismatch"
         assert response_data["user_id"] == 1, "User ID mismatch"
 
-        assert response_data.get("is_blocked") is False, "Offensive comment should not be blocked"
+        assert (
+            response_data.get("is_blocked") is False
+        ), "Offensive comment should not be blocked"
 
     async def test_create_another_good_comment(self, auth_client):
         data = {"content": "I found this really informative!"}
@@ -62,7 +66,9 @@ class TestCommentAPI:
         assert response_data["content"] == data["content"], "Content mismatch"
         assert response_data["user_id"] == 1, "User ID mismatch"
 
-        assert response_data.get("is_blocked") is False, "Another good comment should not be blocked"
+        assert (
+            response_data.get("is_blocked") is False
+        ), "Another good comment should not be blocked"
 
     async def test_create_another_bad_comment(self, auth_client):
         data = {"content": "You are so stupid!"}
@@ -75,7 +81,9 @@ class TestCommentAPI:
         assert response_data["content"] == data["content"], "Content mismatch"
         assert response_data["user_id"] == 1, "User ID mismatch"
 
-        assert response_data.get("is_blocked") is True, "Another bad comment should be blocked"
+        assert (
+            response_data.get("is_blocked") is True
+        ), "Another bad comment should be blocked"
 
     async def test_create_another_offensive_comment(self, auth_client):
         data = {"content": "This is the worst thing I've ever read!"}
@@ -88,7 +96,9 @@ class TestCommentAPI:
         assert response_data["content"] == data["content"], "Content mismatch"
         assert response_data["user_id"] == 1, "User ID mismatch"
 
-        assert response_data.get("is_blocked") is False, "Another offensive comment should be not blocked"
+        assert (
+            response_data.get("is_blocked") is False
+        ), "Another offensive comment should be not blocked"
 
     async def test_create_children_comment(self, auth_client):
         data = {"content": "Children comment", "parent_id": 1}

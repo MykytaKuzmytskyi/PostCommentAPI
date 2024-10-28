@@ -1,6 +1,4 @@
-import pytest
-
-post_fields = ["title", "content", "id", "created_at", "user_id"]
+post_fields = ["title", "content", "id", "created_at", "user_id", "is_blocked"]
 
 
 class TestAsyncClient:
