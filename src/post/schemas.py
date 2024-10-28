@@ -25,7 +25,7 @@ class PostCreate(PostBase):
 
 class PostCreateResponse(PostCreate):
     id: int
-
+    is_blocked: bool
 
 class PostUpdate(PostBase):
     pass

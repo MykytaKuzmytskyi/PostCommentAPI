@@ -60,18 +60,29 @@ async def post_create(db: AsyncSession, post_data: schemas.PostCreate, user):
     return {**post_data.model_dump(), "id": new_post_id}
 
 
-async def post_update(db: AsyncSession, post_data: schemas.PostUpdate, post_id: int):
+async def post_update(db: AsyncSession, post_data: schemas.PostUpdate, post_id: int, user):
     db_post = await get_post_by_id(db, post_id)
+    if db_post.user_id != user.id and not user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
+
+    title_toxicity_score = await analyze_text_toxicity(post_data.title)
+    content_toxicity_score = await analyze_text_toxicity(post_data.content)
+    is_blocked = any([title_toxicity_score > 0.5, content_toxicity_score > 0.5])
+
     for attr, value in post_data.dict().items():
         setattr(db_post, attr, value)
 
+    db_post.is_blocked = is_blocked
     await db.commit()
     await db.refresh(db_post)
     return db_post
 
 
-async def post_delete(db: AsyncSession, post_id: int):
+async def post_delete(db: AsyncSession, post_id: int, user):
     db_post = await get_post_by_id(db, post_id)
+    if db_post.user_id != user.id and not user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
+
     await db.delete(db_post)
     await db.commit()
     return HTTPException(
@@ -187,8 +198,12 @@ async def create_comment(
     return new_comment
 
 
-async def delete_comment(db: AsyncSession, comment_id: int):
+async def delete_comment(db: AsyncSession, comment_id: int, user):
     comment = await get_comment_by_comment_id(db, comment_id)
+
+    if comment.user_id != user.id and not user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
+
 
     min_lft = comment.lft
     max_rgt = comment.rgt

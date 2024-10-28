@@ -61,8 +61,7 @@ async def post_update(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(auth.current_user),
 ):
-    post = await crud.post_update(db=db, post_id=post_id, post_data=post_data)
-    return schemas.PostCreateResponse.from_orm(post)
+    return await crud.post_update(db=db, post_id=post_id, post_data=post_data,  user=user)
 
 
 @router.delete(
@@ -75,7 +74,7 @@ async def delete_post(
     post_id: int = None,
     user: User = Depends(auth.current_user),
 ):
-    return await crud.post_delete(db=db, post_id=post_id)
+    return await crud.post_delete(db=db, post_id=post_id, user=user)
 
 
 @router.get(
@@ -137,10 +136,14 @@ async def delete_comment(
     comment_id: int = None,
     user: User = Depends(auth.current_user),
 ):
-    return await crud.delete_comment(db=db, comment_id=comment_id)
+    return await crud.delete_comment(db=db, comment_id=comment_id, user=user)
 
 
-@router.get("/comments-daily-breakdown", response_model=list[DailyCommentBreakdown])
+@router.get(
+    "/comments-daily-breakdown",
+    response_model=list[DailyCommentBreakdown],
+    tags=["Statistic"],
+    )
 async def get_comments_breakdown(
     date_from: str, date_to: str, db: AsyncSession = Depends(get_db)
 ):
