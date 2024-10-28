@@ -24,6 +24,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Load environment variables
+        run: |
+          echo "Loading environment variables from .env"
+          set -o allexport; source .env; set +o allexport
+
       - name: Run tests
         timeout-minutes: 5
         run: pytest
