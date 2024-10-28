@@ -14,7 +14,7 @@ from src.main import app
 from src.user.models import User
 from src.user.utils import get_user_db
 
-engine_test = create_async_engine(settings.GET_TEST_DATABASE_URL)
+engine_test = create_async_engine(settings.TEST_DATABASE_URL)
 
 async_session_market = sessionmaker(
     autocommit=False, autoflush=False, bind=engine_test, class_=AsyncSession
