@@ -12,6 +12,7 @@ class PostReadDetail(PostBase):
     id: int
     created_at: datetime
     user_id: int
+    is_blocked: bool
 
     class Config:
         from_attributes = True
