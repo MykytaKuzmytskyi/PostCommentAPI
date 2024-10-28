@@ -57,7 +57,7 @@ async def shift_comment_tree(db: AsyncSession, max_rgt: int):
 
 
 async def comment_children_create(
-        db: AsyncSession, post_id, parent_id, content, user_id, is_blocked
+    db: AsyncSession, post_id, parent_id, content, user_id, is_blocked
 ):
     """Creating a child comment."""
     parent_comment = await get_parent_comment(db, parent_id, post_id)

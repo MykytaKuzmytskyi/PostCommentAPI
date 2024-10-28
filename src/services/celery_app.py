@@ -6,18 +6,19 @@ from database.database import SessionLocal
 from src.post.comment.utils import comment_children_create
 
 celery = Celery(
-    'src.services.celery_app',
+    "src.services.celery_app",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_BACKEND_URL,
 )
 
 celery.conf.update(
     result_expires=3600,
-    task_serializer='json',
-    accept_content=['json'],
-    result_serializer='json',
-    timezone='UTC',
+    task_serializer="json",
+    accept_content=["json"],
+    result_serializer="json",
+    timezone="UTC",
     enable_utc=True,
+    broker_connection_retry_on_startup=True,
 )
 
 
