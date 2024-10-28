@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import insert, select, delete, update, func
@@ -7,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from src.post import models, schemas
 from src.post.comment.models import Comment
-from src.post.comment.schemas import CommentCreate, CommentTree
+from src.post.comment.schemas import CommentCreate, CommentTree, DailyCommentBreakdown
 from src.post.comment.utils import (
     comment_children_create,
     get_max_rgt,
@@ -95,9 +96,7 @@ async def get_comment_by_comment_id(db: AsyncSession, comment_id: int):
 
 
 async def get_children_comments(db: AsyncSession, parent_id: int) -> list[Comment]:
-    children_query = select(Comment).where(
-        Comment.parent_id == parent_id
-    )
+    children_query = select(Comment).where(Comment.parent_id == parent_id)
     children_result = await db.execute(children_query)
     return children_result.scalars().all()
 
@@ -129,7 +128,7 @@ async def get_comments_tree(db: AsyncSession, post_id: int) -> list[CommentTree]
 
 
 async def create_comment(
-        db: AsyncSession, post_id: int, comment_data: CommentCreate, user
+    db: AsyncSession, post_id: int, comment_data: CommentCreate, user
 ):
     await get_post_by_id(db, post_id)
 
@@ -157,7 +156,7 @@ async def create_comment(
                 comment_data.parent_id,
                 comment_data.content,
                 user.id,
-                is_blocked
+                is_blocked,
             )
         else:
             max_rgt = await get_max_rgt(db, post_id)
@@ -177,14 +176,12 @@ async def create_comment(
     await db.commit()
     await db.refresh(new_comment)
 
-    user_db = await db.execute(
-        select(User).join(Post).where(Post.id == post_id)
-    )
+    user_db = await db.execute(select(User).join(Post).where(Post.id == post_id))
     user = user_db.scalar_one_or_none()
     if user.auto_reply_enabled:
         reply_comment.apply_async(
             args=[post_id, new_comment.id, user.id],
-            countdown=user.auto_reply_delay.total_seconds()
+            countdown=user.auto_reply_delay.total_seconds(),
         )
 
     return new_comment
@@ -209,3 +206,51 @@ async def delete_comment(db: AsyncSession, comment_id: int):
     await db.commit()
 
     return
+
+
+async def get_comments_daily_breakdown(
+    db: AsyncSession, date_from: str, date_to: str
+) -> list[DailyCommentBreakdown]:
+    """
+    Fetch the daily breakdown of comments, including total and blocked comments.
+
+    Args:
+        db (AsyncSession): The database session for executing queries.
+        date_from (str): The start date for the comments in the format 'YYYY-MM-DD'.
+        date_to (str): The end date for the comments in the format 'YYYY-MM-DD'.
+
+    Returns:
+        List[DailyCommentBreakdown]: A list of daily comment breakdowns.
+    """
+    # Convert strings to datetime objects
+    date_from = datetime.strptime(date_from, "%Y-%m-%d")
+    date_to = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+
+    print(f"Fetching comments from {date_from} to {date_to}")
+
+    query = (
+        select(
+            func.date(Comment.created_at).label("date"),
+            func.count(Comment.id).label("total_comments"),
+            func.count(Comment.is_blocked)
+            .filter(Comment.is_blocked == True)
+            .label("blocked_comments"),
+        )
+        .where(Comment.created_at >= date_from, Comment.created_at < date_to)
+        .group_by(func.date(Comment.created_at))
+        .order_by(func.date(Comment.created_at))
+    )
+
+    result = await db.execute(query)
+    daily_stats = result.all()
+
+    comments = [
+        DailyCommentBreakdown(
+            date=str(stat.date),
+            total_comments=stat.total_comments,
+            blocked_comments=stat.blocked_comments,
+        )
+        for stat in daily_stats
+    ]
+
+    return comments
