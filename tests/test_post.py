@@ -69,3 +69,20 @@ class TestAsyncClient:
             response_data["title"] == data["title"]
         ), f"Expected title to be '{data['title']}', but got '{response_data['title']}'"
         assert response_data["content"] == data["content"]
+
+    async def test_create_bad_post(self, auth_client):
+        data = {"title": "Fuck", "content": "New Test content"}
+        response = await auth_client.post("/posts", json=data)
+        response_data = response.json()
+
+        assert response.status_code == 201
+        assert "id" in response_data, "ID not found in response"
+
+        for key in data:
+            assert key in response_data, f"Key '{key}' not found in response"
+
+        assert (
+            response_data["title"] == data["title"]
+        ), f"Expected title to be '{data['title']}', but got '{response_data['title']}'"
+        assert response_data["content"] == data["content"]
+        assert response_data["is_blocked"] == True
