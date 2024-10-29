@@ -8,7 +8,12 @@ from sqlalchemy.orm import selectinload
 
 from src.post import models, schemas
 from src.post.comment.models import Comment
-from src.post.comment.schemas import CommentCreate, CommentTree, DailyCommentBreakdown
+from src.post.comment.schemas import (
+    CommentCreate,
+    CommentTree,
+    DailyCommentBreakdown,
+    CommentBase,
+)
 from src.post.comment.utils import (
     comment_children_create,
     get_max_rgt,
@@ -60,10 +65,14 @@ async def post_create(db: AsyncSession, post_data: schemas.PostCreate, user):
     return {**post_data.model_dump(), "id": new_post_id, "is_blocked": is_blocked}
 
 
-async def post_update(db: AsyncSession, post_data: schemas.PostUpdate, post_id: int, user):
+async def post_update(
+    db: AsyncSession, post_data: schemas.PostUpdate, post_id: int, user
+):
     db_post = await get_post_by_id(db, post_id)
     if db_post.user_id != user.id and not user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to perform this action"
+        )
 
     title_toxicity_score = await analyze_text_toxicity(post_data.title)
     content_toxicity_score = await analyze_text_toxicity(post_data.content)
@@ -81,7 +90,9 @@ async def post_update(db: AsyncSession, post_data: schemas.PostUpdate, post_id: 
 async def post_delete(db: AsyncSession, post_id: int, user):
     db_post = await get_post_by_id(db, post_id)
     if db_post.user_id != user.id and not user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to perform this action"
+        )
 
     await db.delete(db_post)
     await db.commit()
@@ -198,12 +209,33 @@ async def create_comment(
     return new_comment
 
 
+async def comment_update(
+    db: AsyncSession, comment_data: CommentBase, comment_id: int, user
+):
+    db_comment = await get_comment_by_comment_id(db, comment_id)
+    if db_comment.user_id != user.id:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to perform this action"
+        )
+
+    toxicity_score = await analyze_text_toxicity(comment_data.content)
+    is_blocked = toxicity_score > 0.5
+
+    db_comment.content = comment_data.content
+    db_comment.is_blocked = is_blocked
+
+    await db.commit()
+    await db.refresh(db_comment)
+    return db_comment
+
+
 async def delete_comment(db: AsyncSession, comment_id: int, user):
     comment = await get_comment_by_comment_id(db, comment_id)
 
     if comment.user_id != user.id and not user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
-
+        raise HTTPException(
+            status_code=403, detail="Not authorized to perform this action"
+        )
 
     min_lft = comment.lft
     max_rgt = comment.rgt

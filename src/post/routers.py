@@ -9,6 +9,7 @@ from src.post.comment.schemas import (
     CommentsRead,
     CommentTree,
     DailyCommentBreakdown,
+    CommentBase,
 )
 from src.post.crud import get_comments_daily_breakdown
 from src.user import auth
@@ -61,7 +62,9 @@ async def post_update(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(auth.current_user),
 ):
-    return await crud.post_update(db=db, post_id=post_id, post_data=post_data,  user=user)
+    return await crud.post_update(
+        db=db, post_id=post_id, post_data=post_data, user=user
+    )
 
 
 @router.delete(
@@ -83,7 +86,6 @@ async def delete_post(
     tags=["Comment"],
 )
 async def get_comments_by_post_id(post_id: int, db: AsyncSession = Depends(get_db)):
-    # comments = await crud.get_comments_by_post(post_id, db)
     return await crud.get_comments_tree(db, post_id)
 
 
@@ -126,6 +128,20 @@ async def comment_create(
     )
 
 
+@router.patch(
+    "/comments/{comment_id}",
+    response_model=CommentsRead,
+    tags=["Comment"],
+)
+async def comment_update(
+    comment_id: int,
+    comment_data: CommentBase,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(auth.current_user),
+):
+    return await crud.comment_update(db, comment_data, comment_id, user)
+
+
 @router.delete(
     "/comments/{comment_id}",
     tags=["Comment"],
@@ -143,7 +159,7 @@ async def delete_comment(
     "/comments-daily-breakdown",
     response_model=list[DailyCommentBreakdown],
     tags=["Statistic"],
-    )
+)
 async def get_comments_breakdown(
     date_from: str, date_to: str, db: AsyncSession = Depends(get_db)
 ):
