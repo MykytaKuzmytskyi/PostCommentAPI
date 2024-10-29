@@ -199,10 +199,10 @@ async def create_comment(
     await db.refresh(new_comment)
 
     user_db = await db.execute(select(User).join(Post).where(Post.id == post_id))
-    user = user_db.scalar_one_or_none()
+    author = user_db.scalar_one_or_none()
     if user.auto_reply_enabled:
         reply_comment.apply_async(
-            args=[post_id, new_comment.id, user.id],
+            args=[post_id, new_comment.id, author.id, new_comment.content, author.email],
             countdown=user.auto_reply_delay.total_seconds(),
         )
 

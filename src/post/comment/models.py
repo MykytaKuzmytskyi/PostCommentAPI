@@ -2,6 +2,7 @@ from sqlalchemy import Integer, Column, Text, func, ForeignKey, Boolean, DateTim
 from sqlalchemy.orm import relationship
 
 from database.database import Base
+from src.user.models import User
 
 
 class Comment(Base):
@@ -26,5 +27,5 @@ class Comment(Base):
     parent = relationship(
         "Comment", remote_side=[id], backref="children", cascade="all"
     )
-    user = relationship("User", back_populates="comments")
+    user = relationship(User, back_populates="comments")
     post = relationship("Post", back_populates="comments")

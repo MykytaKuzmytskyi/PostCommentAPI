@@ -4,6 +4,7 @@ from celery import Celery, shared_task
 from config import settings
 from database.database import SessionLocal
 from src.post.comment.utils import comment_children_create
+from .generate_response import generate_response
 
 celery = Celery(
     "src.services.celery_app",
@@ -23,18 +24,19 @@ celery.conf.update(
 
 
 @shared_task
-def reply_comment(post_id, parent_id, user_id):
-    async_to_sync(reply_comment_async)(post_id, parent_id, user_id)
+def reply_comment(post_id, parent_id, author_id, content, author_username):
+    async_to_sync(reply_comment_async)(post_id, parent_id, author_id, content, author_username)
 
 
-async def reply_comment_async(post_id, parent_id, user_id):
+async def reply_comment_async(post_id, parent_id, author_id, content, author_username):
     async with SessionLocal() as db:
+        content_response = generate_response(content, author_username)
         new_reply = await comment_children_create(
             db,
             post_id,
             parent_id,
-            "RepLY Comment",
-            user_id,
+            content_response,
+            author_id,
             is_blocked=False,
         )
         db.add(new_reply)

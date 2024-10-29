@@ -3,7 +3,6 @@ from sqlalchemy import Integer, Column, Boolean, Interval
 from sqlalchemy.orm import relationship
 
 from database.database import Base
-from src.post.comment.models import Comment
 from src.post.models import Post
 
 
@@ -14,4 +13,4 @@ class User(SQLAlchemyBaseUserTable[int], Base):
     auto_reply_delay = Column(Interval, nullable=True)
 
     posts = relationship(Post, back_populates="user")
-    comments = relationship(Comment, back_populates="user")
+    comments = relationship("Comment", back_populates="user")
