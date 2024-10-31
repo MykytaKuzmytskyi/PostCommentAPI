@@ -6,12 +6,20 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
     app_name: str = "PostCommentAPI"
-    SQLALCHEMY_DATABASE_URL: str
     USER_SECRET_KEY: str
     PERSPECTIVE_API_KEY: str
 
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+    POSTGRES_HOST: str
+
     CELERY_BROKER_URL: str
     CELERY_BACKEND_URL: str
+
+    @property
+    def SQLALCHEMY_DATABASE_URL(self):
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}/{self.POSTGRES_DB}"
 
     @property
     def TEST_DATABASE_URL(self):
@@ -19,3 +27,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if __name__ == '__main__':
+    print(settings.SQLALCHEMY_DATABASE_URL)
