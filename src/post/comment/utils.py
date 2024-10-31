@@ -24,13 +24,12 @@ async def get_max_rgt(db: AsyncSession, post_id: int):
     max_rgt_for_post = await db.execute(
         select(func.max(Comment.rgt))
         .filter(Comment.post_id == post_id)
-        .with_for_update()
     )
     max_rgt_for_post_value = max_rgt_for_post.scalar()
 
     if max_rgt_for_post_value is None:
         max_rgt_all_comments = await db.execute(
-            select(func.max(Comment.rgt)).with_for_update()
+            select(func.max(Comment.rgt))
         )
         max_rgt = max_rgt_all_comments.scalar() or 0
     else:
